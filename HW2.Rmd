@@ -1,0 +1,276 @@
+---
+title: "HW2"
+author: "XXX XXX"
+date: "Due: 11:59 pm, Feburary 17th, 2017"
+output: html_document
+---
+#### Problem 1. Rewrite the following loop into functionals. You can erase the original impletation after you rewrite your own version. (30 pts)
+
+(a) Rewrite the following loop using lapply/sapply.
+Print out your result.
+Calculating the length of vectors in a list. (6 pts)
+```{r eval=T} 
+set.seed(15213)
+l <- replicate(5, runif(sample(1:10,1)))
+result_mean <- numeric(length(l))
+for(i in 1:length(l)){
+  result_mean[i] <- mean(l[[i]])
+}
+
+## print out your result
+print(result_mean)
+```
+
+```{r, include=T, eval=T}
+
+## read in TCGA Breast cancer data
+## subtypes: Basal       Her2       LumA        LumB     Normal
+## TCGAdataMatrix: gene expression data matrix. Each row represent a gene symbol and each column represent a patient.
+## Each element of the matrix represents the gene expression level.
+TCGAdata0 <- read.table('TCGA_breastCancer.txt',header=T)
+subtypes <- as.character(unlist(TCGAdata0[1,]))
+TCGAdataMatrix <- as.matrix(TCGAdata0[-1,])
+mode(TCGAdataMatrix) <- 'numeric'
+```
+
+
+(b) Rewrite the following function using apply.
+Print head of pvalues after your implementation.
+The purpose is to identify differentially expressed genes between LumA and Normal. (6 pts)
+
+
+```{r, include=T, eval=T}
+p <- nrow(TCGAdataMatrix)
+pvalues <- numeric(p)
+names(pvalues) <- rownames(TCGAdataMatrix)
+
+for(j in 1:p){
+  atest <- t.test(TCGAdataMatrix[j,subtypes == 'LumA'], TCGAdataMatrix[j,subtypes == 'Normal'])
+  pvalues[j] <- atest$p.value
+}
+
+## print head of pvalues after your implementation
+head(pvalues)
+```
+
+(c) Rewrite the following function using tapply.
+Print head of standardizeByGroup after your implementation.
+The purpose is to standardize gene CDH3 to be mean 0 and standardization 1 for each subtype. (6 pts)
+```{r, include=T, eval=T}
+standardizeByGroup <- NULL
+uniqueGroups <- sort(unique(subtypes))
+agene <- TCGAdataMatrix['CDH3',]
+for(i in 1:length(uniqueGroups)){
+  agroup <- uniqueGroups[i]
+  subGene <- agene[agroup==subtypes]
+  astandardize <- (subGene - mean(subGene)) / sd(subGene)
+  standardizeByGroup[[i]] <- astandardize
+}
+names(standardizeByGroup) <- uniqueGroups
+
+
+## print head of standardizeByGroup after your implementation
+sapply(standardizeByGroup,head)
+
+```
+
+
+
+(d) Rewrite the following function using sweep.
+Print head of matrixStandardize after your implementation.
+The purpose is to standardize all genes be mean 0 and standardization 1. (6 pts)
+```{r, include=T, eval=T}
+matrixStandardize <- t(apply(TCGAdataMatrix,1,function(x) (x - mean(x))/sd(x)))
+
+## print head of matrixStandardize after your implementation
+print(matrixStandardize[1:4, 1:4])
+
+```
+
+(e) For the original data matrix TCGAdataMatrix, 
+for each subtype, get the gene symbols with gene expression level > 0 for more than 30% of samples within the subtype, and save them as list.
+E.g. for gene ACTR3B, there are 195 LumA patients;
+if there are more than 195*30% = 58.5 patients with gene expression level > 0,
+this gene ACTR3B will be saved as an element of LumA subtype.
+(Bonus (3 pts) if you utlize lapply)
+Then utilize Reduce function to get gene symbols appear in all 5 subtypes.
+Print these intersect genes. (6 pts)
+```{r, include=T, eval=T}
+## print intersectGenes
+```
+
+
+#### Problem 2. Basics about ggplot2 (30 pts)
+A very useful reference for ggplot2 can be found here:
+https://www.rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf.
+It doesn't matter if you use ggplot or qplot.
+```{r, include=T}
+library(ggplot2)
+## prepare data.frame
+TCGAdata_ggplot <- data.frame(ACTR3B=TCGAdataMatrix['ACTR3B',], 
+                              ANLN=TCGAdataMatrix['ANLN',], 
+                              BAG1=TCGAdataMatrix['BAG1',] + 3, 
+                              subtypes=subtypes)
+
+```
+
+(a) Scattered plot using TCGAdata_ggplot 
+Use expression of ACTR3B as x-axis: expression of ANLN as y-axis. (5 pts)
+
+```{r, include=T, eval=T}
+```
+
+(b) Scattered plot using  TCGAdata_ggplot 
+Use expression of ACTR3B as x-axis: expression of ANLN as y-axis. 
+Use subtypes as colors. (5 pts)
+
+```{r, include=T, eval=T}
+```
+
+(c) Scattered plot using TCGAdata_ggplot 
+Use expression of ACTR3B as x-axis: expression of ANLN as y-axis. 
+Use subtypes as colors.
+Use the expression value of BAG1 + 3 (already processed in TCGAdata_ggplot) as point size.
+(5 pts)
+
+```{r, include=T, eval=T}
+```
+
+(d) Histogram of ACTR3B using TCGAdata_ggplot (5 pts)
+```{r, include=T, eval=T}
+```
+
+(e) Histogram of ACTR3B using TCGAdata_ggplot. 
+Fill the Histogram with color (using subtypes as color).
+(5 pts)
+```{r, include=T, eval=T}
+```
+
+(f) Histogram of ACTR3B using TCGAdata_ggplot.
+Using subtypes as facet.
+(5 pts)
+
+```{r, include=T, eval=T}
+```
+
+
+#### Problem 3. Functinal programming (40 pts)
+In this problem, we will write functions to calculate the integral of a function.
+Each step in the development of the tool is driven by a desire to reduce duplication and to make the approach more general.
+The idea behind numerical integration is simple: find the area under a
+curve by approximating the curve with simpler components. The two
+simplest approaches are the midpoint and trapezoid rules. The midpoint
+rule approximates a curve with a rectangle.
+The trapezoid rule
+uses a trapezoid. Each takes the function we want to integrate, f, and a
+range of values, from a to b, to integrate over. E.g. $\int_0^\pi sin(x) dx = 2$
+
+(a) Complete the following functions approximating integration.
+Note in this problem, we use very rough approximation.
+Midpoint method is given, you only need to complete trapezoid. 
+You should make the all evaluation function work. (E.g. midpoint(sin, 0, pi)).
+(5 pts)
+
+
+```{r, include=T, eval=T}
+midpoint <- function(f, a, b){
+  (b - a) * f((a + b)/2)
+}
+
+trapezoid <- function(f, a, b){
+  ## your code
+  0
+}
+
+## evaluation functions
+midpoint(sin, 0, pi)
+trapezoid(sin, 0, pi)
+```
+
+(b) These functinos don't provide very good approximation.
+To make them more accurate using the idea that underlies calculus: we’ll break
+up the range into smaller pieces and integrate each piece using one of
+the simple rules. This is called composite integration.
+Implement the following functions and check if the accuracy is improved. 
+You should make the all evaluation function work. 
+(5 pts)
+
+```{r, include=T, eval=T}
+midpoint_composite <- function(f, a, b, n = 10) {
+  ## your code
+  0
+}
+
+trapezoid_composite <- function(f, a, b, n = 10) {
+  ## your code
+  0
+}
+
+## evaluation functions
+midpoint_composite(sin, 0, pi, n = 10)
+midpoint_composite(sin, 0, pi, n = 100)
+trapezoid_composite(sin, 0, pi, n = 10)
+trapezoid_composite(sin, 0, pi, n = 100)
+```
+
+(c) Note that there are a lot of duplication between midpoint_composite() and trapezoid_composite().
+Apart from the internal rule used to integrate
+over a range, they are basically the same. From these specific
+functions you can extract a more general composite integration function.
+You should make the all evaluation function work. 
+(6 pts)
+
+```{r, include=T, eval=T}
+composite <- function(f, a, b, n = 10, rule) {
+  ## your code
+  0
+}
+
+## evaluation functions
+composite(sin, 0, pi, n = 10, rule = midpoint)
+composite(sin, 0, pi, n = 10, rule = trapezoid)
+```
+
+
+(d) This function takes two functions as arguments: the function to integrate
+and the integration rule. 
+We now want to create a closure such that the input is a function (integration rule)
+and the output is a function which will perform the integration. 
+Then perform your own mycomposite_midpoint(sin, 0, pi, n = 10). (6 pts)
+
+```{r, include=T, eval=T}
+composite_closures <- function(rule) {
+  ## your code
+  
+  ## return a fucntion
+}
+
+mycomposite_midpoint <- composite_closures(midpoint)
+# mycomposite_midpoint(sin, 0, pi, n = 10)
+```
+
+(e) We can now add even better rules for integrating over smaller ranges.
+Create integration function using the simpson rule given below. (Also use your composite_closures in problem (d)). 
+Evaluate mycomposite_simpson(sin, 0, pi, n = 10).
+(6 pts)
+
+```{r, include=T, eval=T}
+simpson <- function(f, a, b) {
+  (b - a) / 6 * (f(a) + 4 * f((a + b) / 2) + f(b))
+}
+
+# mycomposite_simpson(sin, 0, pi, n = 10)
+```
+
+(f) Use three rules (functions) as input, creating list of integration function using lapply (if the name of your list of integration function is myintegral). Use at least two approaches to evaluate myintegral$trapezoid(sin,0,pi). (6 pts)
+
+```{r, include=T, eval=T}
+methodList <- list(integral_midpoint=midpoint, integral_trapezoid=trapezoid, integral_simpson=simpson)
+
+## use at least two approaches to evaluate myintegral$trapezoid(sin,0,pi)
+```
+
+(g) Calculate $\int_0^\pi x^2 dx$ with simpson's rule you obtained from (f). (6 pts) (hint: use anonymous function)
+```{r, include=T, eval=T}
+```
+
